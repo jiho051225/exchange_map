@@ -5,6 +5,12 @@ const berlinParts = new Intl.DateTimeFormat('en-CA', {
 const berlinClock = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 })
+const transitModes = new Set([
+  'TRANSIT', 'TRAM', 'SUBWAY', 'FERRY', 'AIRPLANE', 'BUS', 'COACH',
+  'RAIL', 'HIGHSPEED_RAIL', 'LONG_DISTANCE', 'NIGHT_RAIL',
+  'REGIONAL_RAIL', 'REGIONAL_FAST_RAIL', 'SUBURBAN', 'FUNICULAR',
+  'AERIAL_LIFT', 'METRO', 'CABLE_CAR', 'OTHER',
+])
 
 function parts(date) {
   return Object.fromEntries(berlinParts.formatToParts(date).filter(part => part.type !== 'literal').map(part => [part.type, part.value]))
@@ -63,13 +69,13 @@ function normalize(raw, id) {
     line: leg.routeShortName ?? leg.route?.shortName ?? leg.route?.name ?? '',
     headsign: leg.headsign ?? leg.trip?.headsign ?? '',
     platform: leg.from?.platform ?? leg.from?.track ?? '',
-    transit: Boolean(leg.transitLeg ?? leg.route ?? leg.trip),
+    transit: transitModes.has(leg.mode) || Boolean(leg.routeId || leg.tripId || leg.transitLeg || leg.route || leg.trip),
     points: typeof leg.legGeometry?.points === 'string' ? decodePolyline(leg.legGeometry.points) : [],
   }))
   const start = raw.startTime ?? legs[0]?.start
   const end = raw.endTime ?? legs.at(-1)?.end
   const minutes = Number.isFinite(+raw.duration) ? Math.round(+raw.duration / 60) : Math.round((new Date(end) - new Date(start)) / 60000)
-  const transfers = Math.max(0, legs.filter(leg => leg.transit).length - 1)
+  const transfers = Number.isInteger(raw.transfers) ? raw.transfers : Math.max(0, legs.filter(leg => leg.transit).length - 1)
   const key = legs.map(leg => `${leg.line}/${leg.from}/${leg.to}/${leg.start}`).join('|')
   return { id, legs, start, end, minutes, transfers, key, badges: [] }
 }

@@ -24,14 +24,21 @@ export async function planMiddleware(req, res) {
   upstream.searchParams.set('numItineraries', '8')
   upstream.searchParams.set('maxItineraries', '20')
   upstream.searchParams.set('directModes', 'WALK')
-  const headers = { accept: 'application/json' }
+  const contact = process.env.APP_CONTACT_URL || 'https://github.com/jiho051225/exchange_map'
+  const headers = {
+    accept: 'application/json',
+    'user-agent': `FrankfurtRoute/1.0 (+${contact})`,
+  }
   if (process.env.UPSTREAM_API_KEY) {
     const header = process.env.UPSTREAM_API_KEY_HEADER || 'x-api-key'
     headers[header] = process.env.UPSTREAM_API_KEY
   }
   try {
     const response = await fetch(upstream, { headers, signal: AbortSignal.timeout(15000) })
-    if (!response.ok) return send(res, 502, { error: '경로 서비스가 요청을 처리하지 못했습니다.' })
+    if (!response.ok) {
+      console.error(`Transitous plan request failed: HTTP ${response.status}`)
+      return send(res, 502, { error: '경로 서비스가 요청을 처리하지 못했습니다.', upstreamStatus: response.status })
+    }
     const body = await response.text()
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
     res.end(body)

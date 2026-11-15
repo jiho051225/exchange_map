@@ -32,6 +32,7 @@ npm.cmd run preview
 | `UPSTREAM_API_URL` | 서버가 호출할 고정 경로 API URL. 기본값은 Transitous v6 |
 | `UPSTREAM_API_KEY` | 추후 제공처가 키를 요구할 때 서버에서만 전송하는 키. 현재 Transitous 연결에는 비워 둠 |
 | `UPSTREAM_API_KEY_HEADER` | 키를 보낼 HTTP 헤더 이름. 기본값 `x-api-key` |
+| `APP_CONTACT_URL` | Transitous 요청의 User-Agent에 담는 공개 연락처 URL |
 | `HOST`, `PORT` | 배포 서버의 바인딩 주소와 포트 |
 
 `VITE_` 접두사가 붙은 변수는 브라우저 빌드에 포함되므로 비밀키에 사용하면 안 됩니다. 이 앱은 키를 클라이언트 코드나 브라우저 저장소에 넣지 않습니다. 제공처 변경 시 응답 형식에 맞춰 `src/api/routes.js`의 변환 로직을 수정해야 합니다.
