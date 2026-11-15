@@ -38,6 +38,12 @@ export function formatTime(timestamp) {
   return Number.isNaN(+date) ? '시간 미제공' : berlinClock.format(date)
 }
 
+export function formatDuration(minutes) {
+  const total = Math.max(0, Math.round(minutes))
+  if (total < 60) return `${total}분`
+  return `${Math.floor(total / 60)}시간 ${total % 60}분`
+}
+
 function decodePolyline(value, precision = 6) {
   let index = 0, lat = 0, lon = 0
   const points = []
@@ -94,9 +100,11 @@ function recommend(rawRoutes) {
 }
 
 export async function fetchRoutes(from, to, iso, signal) {
+  const placeValue = place => place.type === 'PLACE' || place.type === 'ADDRESS'
+    ? `${place.lat},${place.lon}` : place.id
   const query = new URLSearchParams({
-    fromPlace: `${from.lat},${from.lon}`,
-    toPlace: `${to.lat},${to.lon}`,
+    fromPlace: placeValue(from),
+    toPlace: placeValue(to),
     time: iso,
     searchWindow: '3600',
     numItineraries: '8',

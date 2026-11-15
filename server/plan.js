@@ -6,6 +6,12 @@ function validPoint(value) {
   return Math.abs(lat) <= 90 && Math.abs(lon) <= 180
 }
 
+function validPlace(value) {
+  if (typeof value !== 'string') return false
+  if (value.includes(',')) return validPoint(value)
+  return value.length <= 200 && /^[^\s\p{C}]+$/u.test(value)
+}
+
 export async function planMiddleware(req, res) {
   if (req.method !== 'GET') return send(res, 405, { error: 'GET 요청만 허용됩니다.' })
   if ((req.url || '').length > 2048) return send(res, 414, { error: '요청이 너무 깁니다.' })
@@ -13,7 +19,7 @@ export async function planMiddleware(req, res) {
   const from = incoming.searchParams.get('fromPlace')
   const to = incoming.searchParams.get('toPlace')
   const time = incoming.searchParams.get('time')
-  if (!validPoint(from) || !validPoint(to) || !time || Number.isNaN(Date.parse(time))) {
+  if (!validPlace(from) || !validPlace(to) || !time || Number.isNaN(Date.parse(time))) {
     return send(res, 400, { error: '출발지, 도착지, 출발 시간을 확인하세요.' })
   }
   const upstream = new URL(process.env.UPSTREAM_API_URL || 'https://api.transitous.org/api/v6/plan')

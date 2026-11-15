@@ -3,6 +3,7 @@ import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { join, extname, resolve, sep } from 'node:path'
 import { planMiddleware } from './plan.js'
+import { placeSearchMiddleware } from './places.js'
 
 const root = resolve('dist')
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' }
@@ -16,6 +17,7 @@ createServer(async (req, res) => {
   let url
   try { url = new URL(req.url, 'http://localhost') } catch { res.writeHead(400).end(); return }
   if (url.pathname === '/api/plan') return planMiddleware(req, res)
+  if (url.pathname === '/api/places') return placeSearchMiddleware(req, res)
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405).end()
     return

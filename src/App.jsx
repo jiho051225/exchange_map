@@ -1,17 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
-import { STOPS } from './data/stops.js'
-import { berlinNow, berlinToIso, fetchRoutes, formatTime } from './api/routes.js'
+import { berlinNow, berlinToIso, fetchRoutes, formatDuration, formatTime } from './api/routes.js'
+import { searchPlaces } from './api/places.js'
 
-const storageKey = 'frankfurt-route-last'
+const storageKey = 'frankfurt-route-last-v2'
+const countryNames = new Intl.DisplayNames(['ko'], { type: 'region' })
+
+function countryLabel(country) {
+  if (!country) return '국가 정보 없음'
+  return /^[A-Za-z]{2}$/.test(country) ? countryNames.of(country.toUpperCase()) : country
+}
+
+function restoredStop(value) {
+  return value && typeof value.id === 'string' && typeof value.name === 'string' &&
+    Number.isFinite(value.lat) && Number.isFinite(value.lon) ? value : null
+}
 
 function initialInputs() {
   const initial = { from: null, to: null, ...berlinNow(10), old: false }
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || 'null')
     if (saved) {
-      initial.from = STOPS.find(stop => stop.id === saved.from) || null
-      initial.to = STOPS.find(stop => stop.id === saved.to) || null
+      initial.from = restoredStop(saved.from)
+      initial.to = restoredStop(saved.to)
       if (saved.date && saved.time) {
         initial.date = saved.date
         initial.time = saved.time
@@ -24,25 +35,49 @@ function initialInputs() {
 
 function PlaceInput({ kind, label, value, stop, onChange, onChoose, active, setActive }) {
   const inputRef = useRef(null)
-  const matches = STOPS.filter(item => !value.trim() || item.name.toLowerCase().includes(value.trim().toLowerCase())).slice(0, 8)
+  const [matches, setMatches] = useState([])
+  const [status, setStatus] = useState('idle')
+
+  useEffect(() => {
+    setMatches([])
+    if (!active || stop || value.trim().length < 2) {
+      setStatus('idle')
+      return
+    }
+    const controller = new AbortController()
+    setStatus('loading')
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchPlaces(value.trim(), controller.signal)
+        setMatches(results)
+        setStatus('ready')
+      } catch (error) {
+        if (error.name !== 'AbortError') setStatus('error')
+      }
+    }, 300)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [active, value, stop])
+
+  const modeName = { BUS: '버스', TRAM: '트램', SUBWAY: '지하철', SUBURBAN: 'S-Bahn', RAIL: '열차', REGIONAL_RAIL: '열차' }
+  const typeName = { STOP: '정류장', PLACE: '장소', ADDRESS: '주소' }
   return <div className="place-row">
     <span className={`place-dot ${kind === 'from' ? 'origin' : 'destination'}`} />
     <label htmlFor={kind}>{label}</label>
-    <input id={kind} ref={inputRef} value={value} autoComplete="off" placeholder={`${label} 정류장을 검색하세요`}
+    <input id={kind} ref={inputRef} value={value} autoComplete="off" placeholder={`${label} 정류장·건물·주소 검색`}
       aria-autocomplete="list" aria-expanded={active} aria-controls={`${kind}List`}
       onFocus={() => setActive(true)} onChange={event => onChange(event.target.value)}
       onKeyDown={event => {
         if (event.key === 'Escape') setActive(false)
-        if (event.key === 'Enter' && active && matches[0]) {
+        if (event.key === 'Enter' && active && !stop) {
           event.preventDefault()
-          onChoose(matches[0])
+          if (status === 'ready' && matches[0]) onChoose(matches[0])
         }
       }} />
-    {active && <div id={`${kind}List`} className="suggestions show" role="listbox">
-      {matches.length ? matches.map(item => <button key={item.id} type="button" role="option" aria-selected={stop?.id === item.id}
+    {active && !stop && <div id={`${kind}List`} className="suggestions show" role="listbox">
+      {status === 'ready' && matches.length ? matches.map(item => <button key={item.id} type="button" role="option" aria-selected={stop?.id === item.id}
         onMouseDown={event => event.preventDefault()} onClick={() => { onChoose(item); inputRef.current?.focus() }}>
-        {item.name}<small>프랑크푸르트 정류장</small>
-      </button>) : <button type="button" disabled>일치하는 정류장이 없습니다</button>}
+        {item.name}<small>{[countryLabel(item.country), item.area, typeName[item.type], ...(item.modes || []).map(mode => modeName[mode]).filter(Boolean)].filter(Boolean).join(' · ')}</small>
+      </button>) : <div className="suggestion-status" role="status">{value.trim().length < 2 ? '장소 이름을 2자 이상 입력하세요.' : status === 'loading' ? '장소를 검색하고 있습니다…' : status === 'error' ? '장소를 불러오지 못했습니다. 다시 입력해 주세요.' : '일치하는 장소가 없습니다.'}</div>}
     </div>}
   </div>
 }
@@ -50,7 +85,7 @@ function PlaceInput({ kind, label, value, stop, onChange, onChoose, active, setA
 function RouteCard({ route, selected, onSelect }) {
   return <button type="button" className={`route-card ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={onSelect}>
     <div className="badges">{route.badges.map((badge, index) => <span key={badge} className={`badge ${index ? 'other' : ''}`}>{badge}</span>)}</div>
-    <div className="route-main"><strong>{route.minutes}</strong><small>분</small><span className="right">환승 {route.transfers}회</span></div>
+    <div className="route-main"><strong>{formatDuration(route.minutes)}</strong><span className="right">환승 {route.transfers}회</span></div>
     <div className="route-times">{formatTime(route.start)} <span>→</span> {formatTime(route.end)}</div>
     <div className="segments">{route.legs.map((leg, index) => <span key={index} className="segment-wrap">
       <span className={`segment ${leg.transit ? '' : 'walk'}`}>{leg.transit ? leg.line || leg.mode || '대중교통' : '도보'}</span>
@@ -152,7 +187,7 @@ export default function App() {
     setSearchedPlaces(null)
     setNotice('경로를 조회하고 있습니다…')
     setMessage({ kind: 'info', text: 'Transitous에서 실제 운행 경로를 조회하고 있습니다.' })
-    try { localStorage.setItem(storageKey, JSON.stringify({ from: from.id, to: to.id, date, time })) } catch { /* Search still works. */ }
+    try { localStorage.setItem(storageKey, JSON.stringify({ from, to, date, time })) } catch { /* Search still works. */ }
     try {
       const found = await fetchRoutes(from, to, iso, controller.signal)
       setRoutes(found)
