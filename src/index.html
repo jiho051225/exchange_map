@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f9fc">
+  <title>프랑크푸르트 길찾기 | 교환학생 대중교통</title>
+  <meta name="description" content="프랑크푸르트 정류장 사이 대중교통 경로를 간결하게 비교합니다.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <header class="brand"><span class="brand-mark">↗</span><div><strong>길위의 프랑크푸르트</strong><small>FRANKFURT TRANSIT GUIDE</small></div><span class="city-tag">FRANKFURT</span></header>
+      <div class="sidebar-scroll">
+        <div class="intro"><p class="eyebrow">PUBLIC TRANSIT ROUTE</p><h1>가볍게 떠나는<br><em>도시의 다음 정류장.</em></h1><p>프랑크푸르트의 버스·U-Bahn·S-Bahn·트램 경로를 비교해 보세요.</p></div>
+        <div class="mode-row" aria-label="교통수단"><span class="mode active">▣ <b>대중교통</b></span><span class="mode">↗ 도보 연결 포함</span></div>
+        <form id="searchForm" novalidate>
+          <div class="place-box">
+            <div class="place-row"><span class="place-dot origin"></span><label for="from">출발</label><input id="from" autocomplete="off" placeholder="출발 정류장을 검색하세요" aria-autocomplete="list"><div id="fromList" class="suggestions" role="listbox"></div></div>
+            <button id="swap" class="swap" type="button" title="출발지와 도착지 바꾸기" aria-label="출발지와 도착지 바꾸기">⇅</button>
+            <div class="place-row"><span class="place-dot destination"></span><label for="to">도착</label><input id="to" autocomplete="off" placeholder="도착 정류장을 검색하세요" aria-autocomplete="list"><div id="toList" class="suggestions" role="listbox"></div></div>
+          </div>
+          <div class="time-heading"><span>출발 일시</span><span>프랑크푸르트 현지 시각 · Europe/Berlin</span></div>
+          <div class="time-row"><input id="date" type="date" aria-label="출발 날짜"><input id="time" type="time" aria-label="출발 시간"></div>
+          <button id="search" class="search-button" type="submit">경로 찾기 <span>→</span></button>
+        </form>
+        <div id="message" class="message" role="status" hidden></div>
+        <div class="results-heading"><div><span class="eyebrow">YOUR ROUTES</span><h2>추천 경로 <span id="resultCount"></span></h2></div><select id="sort" aria-label="경로 정렬"><option value="duration">소요 시간순</option><option value="transfers">환승 횟수순</option></select></div>
+        <div id="empty" class="empty-state"><span class="empty-icon">⌁</span><strong>어디로 이동하시나요?</strong><p>출발지와 도착지를 정하면<br>추천 경로가 이곳에 표시됩니다.</p></div>
+        <div id="results" class="results"></div>
+        <details class="tips"><summary><span class="tip-icon">✳</span><span><strong>교환학생 교통 팁</strong><small>Deutschland-Semesterticket</small></span><span class="chevron">⌄</span></summary><div class="tip-body"><p>별도 교통권을 구매하기 전에 학교가 Deutschland-Semesterticket을 제공하는지 확인하세요. 교환학생의 발급 자격·방법·유효기간은 학교와 공식 안내를 확인해야 합니다.</p><a href="https://www.rmv.de/c/de/tickets/sortiment/tickets-im-ueberblick/deutschlandsemesterticket" target="_blank" rel="noopener noreferrer">RMV 공식 안내 ↗</a><small>적용 범위: 제공 학교의 자격 확인 대상 · 확인일: 2026.11.15</small></div></details>
+      </div>
+      <footer class="sidebar-footer"><span>데이터: <a href="https://transitous.org/sources/" target="_blank" rel="noopener noreferrer">Transitous</a> · 지도: © OpenStreetMap</span><span>FRANKFURT AM MAIN</span></footer>
+    </aside>
+    <main class="map-area"><div id="map"></div><div class="map-overlay top-left"><span class="live-dot"></span> FRANKFURT AM MAIN <span class="divider">/</span> GERMANY</div><div class="map-overlay top-right">도시 안의 이동을 위한 길찾기</div><div id="mapNotice" class="map-notice">경로를 선택하면 지도에서 확인할 수 있습니다.</div><div class="map-credit">실제 경로 데이터: Transitous · © OpenStreetMap contributors</div></main>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="./js/script.js"></script>
+</body>
+</html>
